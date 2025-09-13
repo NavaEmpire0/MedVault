@@ -39,19 +39,11 @@ def load_patients_df():
 def save_patients_df(df):
     df.to_csv(PATIENTS_CSV_PATH, index=False)
 
-# --- FIX: Rewritten function for robust ID generation ---
 def generate_patient_id(df):
-    """Generates a new patient ID by finding the maximum existing ID and incrementing it."""
-    if df.empty:
-        return "PAT001"
-    
-    # Extract numbers from all existing patient IDs
+    if df.empty: return "PAT001"
     existing_ids = df['patient_id'].str.replace("PAT", "").astype(int)
-    # Find the highest number
     max_id = existing_ids.max()
-    # Increment to get the new ID number
     new_id_num = max_id + 1
-    # Format back into PATXXX format
     return f"PAT{new_id_num:03d}"
     
 def authenticate_patient(patient_id, pin):
