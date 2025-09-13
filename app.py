@@ -39,32 +39,12 @@ def load_patients_df():
 def save_patients_df(df):
     df.to_csv(PATIENTS_CSV_PATH, index=False)
 
-# --- FIX: Rewritten function for robust ID generation on cloud platforms ---
 def generate_patient_id(df):
-    """
-    Generates a new patient ID by checking the max ID from both the 
-    patients.csv file and the existing folder names in the uploads directory.
-    This makes it resilient to ephemeral filesystem issues on cloud platforms.
-    """
-    max_csv_id = 0
-    if not df.empty:
-        csv_ids = df['patient_id'].str.replace("PAT", "").astype(int)
-        max_csv_id = csv_ids.max()
-
-    max_folder_id = 0
-    try:
-        folder_names = os.listdir(UPLOADS_DIR)
-        folder_ids = [int(name.replace("PAT", "")) for name in folder_names if name.startswith("PAT")]
-        if folder_ids:
-            max_folder_id = max(folder_ids)
-    except (ValueError, FileNotFoundError):
-        # This handles cases where the uploads directory is empty or contains non-conforming names
-        max_folder_id = 0
-        
-    # The new ID is one greater than the highest of the two sources
-    last_num = max(max_csv_id, max_folder_id)
-    new_num = last_num + 1
-    return f"PAT{new_num:03d}"
+    if df.empty: return "PAT001"
+    existing_ids = df['patient_id'].str.replace("PAT", "").astype(int)
+    max_id = existing_ids.max()
+    new_id_num = max_id + 1
+    return f"PAT{new_id_num:03d}"
     
 def authenticate_patient(patient_id, pin):
     df = load_patients_df()
@@ -118,12 +98,14 @@ if 'view_only_patient_data' not in st.session_state: st.session_state['view_only
 if 'new_profile_info' not in st.session_state: st.session_state['new_profile_info'] = None
 if 'current_med_list' not in st.session_state: st.session_state['current_med_list'] = []
 if 'history_med_list' not in st.session_state: st.session_state['history_med_list'] = []
+if 'meds_loaded' not in st.session_state: st.session_state['meds_loaded'] = False
 
 # --- UI DRAWING FUNCTIONS ---
 
 def draw_login_page():
     st.session_state['current_med_list'] = []
     st.session_state['history_med_list'] = []
+    st.session_state['meds_loaded'] = False # Reset med loading flag
 
     logo_col1, logo_col2, logo_col3 = st.columns([1, 2, 1])
     with logo_col2:
@@ -303,6 +285,13 @@ def draw_create_profile_page():
 
 def draw_dashboard():
     patient = st.session_state['logged_in_patient']
+    
+    # NEW: Logic to load medication lists into session state for editing, once per login
+    if not st.session_state.get('meds_loaded'):
+        st.session_state.current_med_list = [med for med in str(patient.get('current_medications', '')).splitlines() if med.strip()]
+        st.session_state.history_med_list = [med for med in str(patient.get('medication_history', '')).splitlines() if med.strip()]
+        st.session_state.meds_loaded = True
+
     st.title(f"MedVault Dashboard for {patient['name']}")
     col1, col2 = st.columns([1, 3])
     with col1:
@@ -319,33 +308,75 @@ def draw_dashboard():
         m1.metric("Patient ID", patient['patient_id'])
         m2.metric("Date of Birth", patient['dob'])
         m3.metric("Blood Group", patient['blood_group'])
-        with st.expander("✏️ Edit Your Profile"):
-            with st.form("edit_profile_form"):
-                new_name = st.text_input("Full Name", value=patient['name'])
-                new_dob = st.date_input("Date of Birth", value=datetime.datetime.strptime(patient['dob'], "%Y-%m-%d").date(), min_value=datetime.date(1920, 1, 1))
-                blood_groups = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"]
-                new_blood_group = st.selectbox("Blood Group", blood_groups, index=blood_groups.index(patient['blood_group']))
-                new_current_medications = st.text_area("Currently Using Medicines", value=patient.get('current_medications', ''))
-                new_medication_history = st.text_area("Medication History", value=patient.get('medication_history', ''))
-                new_profile_pic = st.file_uploader("Upload new profile picture", type=['png', 'jpg', 'jpeg'])
-                update_submitted = st.form_submit_button("Update Profile")
-                if update_submitted:
-                    with st.spinner("Saving your changes..."):
-                        df = load_patients_df()
-                        patient_index = df.index[df['patient_id'] == patient['patient_id']].tolist()[0]
-                        df.at[patient_index, 'name'] = new_name
-                        df.at[patient_index, 'dob'] = new_dob.strftime("%Y-%m-%d")
-                        df.at[patient_index, 'blood_group'] = new_blood_group
-                        df.at[patient_index, 'current_medications'] = new_current_medications
-                        df.at[patient_index, 'medication_history'] = new_medication_history
-                        save_patients_df(df)
-                        if new_profile_pic:
-                            ext = new_profile_pic.name.split('.')[-1]
-                            with open(os.path.join(UPLOADS_DIR, patient['patient_id'], f'profile_pic.{ext}'), "wb") as f:
-                                f.write(new_profile_pic.getbuffer())
-                    st.session_state['logged_in_patient'] = authenticate_patient(patient['patient_id'], patient['pin'])
-                    st.success("Profile updated successfully!")
+
+    with st.expander("✏️ Edit Your Profile"):
+        # --- EDITABLE MEDICATION BUILDER ADDED ---
+        st.subheader("Edit Your Medication Lists")
+        drug_map_df = load_drug_map()
+        known_drugs = ["--- Select a Drug ---"] + sorted(drug_map_df['indian_name'].str.capitalize().tolist()) + ["Other..."]
+        
+        c1, c2 = st.columns(2)
+        with c1:
+            st.write("**Currently Using Medicines**")
+            selected_current_med = st.selectbox("Select to add to current list", options=known_drugs, key="edit_current_med_selector")
+            other_current_med = st.text_input("Enter custom medication name", key="edit_other_current") if selected_current_med == "Other..." else ""
+            if st.button("Add to Current List", key="edit_add_current"):
+                med_to_add = other_current_med if selected_current_med == "Other..." else selected_current_med
+                if med_to_add and med_to_add != "--- Select a Drug ---" and med_to_add not in st.session_state.current_med_list:
+                    st.session_state.current_med_list.append(med_to_add)
                     st.rerun()
+            if st.session_state.current_med_list:
+                for i, med in enumerate(st.session_state.current_med_list):
+                    col_med, col_btn = st.columns([4,1])
+                    with col_med: st.markdown(f"- {med}")
+                    with col_btn: 
+                        if st.button("Remove", key=f"edit_remove_current_{i}"):
+                            st.session_state.current_med_list.pop(i)
+                            st.rerun()
+        with c2:
+            st.write("**Medication History**")
+            selected_history_med = st.selectbox("Select to add to history", options=known_drugs, key="edit_history_med_selector")
+            other_history_med = st.text_input("Enter custom medication name", key="edit_other_history") if selected_history_med == "Other..." else ""
+            if st.button("Add to History List", key="edit_add_history"):
+                med_to_add = other_history_med if selected_history_med == "Other..." else selected_history_med
+                if med_to_add and med_to_add != "--- Select a Drug ---" and med_to_add not in st.session_state.history_med_list:
+                    st.session_state.history_med_list.append(med_to_add)
+                    st.rerun()
+            if st.session_state.history_med_list:
+                for i, med in enumerate(st.session_state.history_med_list):
+                    col_med, col_btn = st.columns([4,1])
+                    with col_med: st.markdown(f"- {med}")
+                    with col_btn: 
+                        if st.button("Remove", key=f"edit_remove_history_{i}"):
+                            st.session_state.history_med_list.pop(i)
+                            st.rerun()
+        
+        st.divider()
+        st.subheader("Update Personal Info & Save All Changes")
+        with st.form("edit_profile_form"):
+            new_name = st.text_input("Full Name", value=patient['name'])
+            new_dob = st.date_input("Date of Birth", value=datetime.datetime.strptime(patient['dob'], "%Y-%m-%d").date(), min_value=datetime.date(1920, 1, 1))
+            blood_groups = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"]
+            new_blood_group = st.selectbox("Blood Group", blood_groups, index=blood_groups.index(patient['blood_group']))
+            new_profile_pic = st.file_uploader("Upload new profile picture", type=['png', 'jpg', 'jpeg'])
+            update_submitted = st.form_submit_button("Save All Profile Changes")
+            if update_submitted:
+                with st.spinner("Saving your changes..."):
+                    df = load_patients_df()
+                    patient_index = df.index[df['patient_id'] == patient['patient_id']].tolist()[0]
+                    df.at[patient_index, 'name'] = new_name
+                    df.at[patient_index, 'dob'] = new_dob.strftime("%Y-%m-%d")
+                    df.at[patient_index, 'blood_group'] = new_blood_group
+                    df.at[patient_index, 'current_medications'] = "\n".join(st.session_state.current_med_list)
+                    df.at[patient_index, 'medication_history'] = "\n".join(st.session_state.history_med_list)
+                    save_patients_df(df)
+                    if new_profile_pic:
+                        ext = new_profile_pic.name.split('.')[-1]
+                        with open(os.path.join(UPLOADS_DIR, patient['patient_id'], f'profile_pic.{ext}'), "wb") as f:
+                            f.write(new_profile_pic.getbuffer())
+                st.session_state['logged_in_patient'] = authenticate_patient(patient['patient_id'], patient['pin'])
+                st.success("Profile updated successfully!")
+                st.rerun()
 
     st.divider()
     med_col, report_col = st.columns(2)
@@ -412,6 +443,7 @@ def draw_dashboard():
     if st.button("Logout"):
         st.session_state['page'] = 'login'
         st.session_state['logged_in_patient'] = None
+        st.session_state['meds_loaded'] = False # Reset med loading flag
         st.query_params.clear()
         st.rerun()
 
@@ -457,6 +489,7 @@ def draw_view_only_dashboard():
     if st.button("Back to Main Page"):
         st.session_state['page'] = 'login'
         st.session_state['view_only_patient_data'] = None
+        st.session_state['meds_loaded'] = False # Reset med loading flag
         st.rerun()
 
 # --- MAIN ROUTER ---
