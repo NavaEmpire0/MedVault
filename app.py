@@ -110,9 +110,9 @@ def draw_login_page():
         if os.path.exists(LOGO_PATH):
             st.image(LOGO_PATH, use_container_width=True)
         else:
-            st.markdown("<h1 style='text-align: center; color: #2E8BC0; font-family:Segoe UI,Arial,sans-serif; font-weight:700;'>MedVault Dashboard</h1>", unsafe_allow_html=True)
+            st.title("MedVault Dashboard")
 
-    st.markdown("<h2 style='text-align: center; color: #F9A826; font-family:Segoe UI,Arial,sans-serif; font-weight:500;'>Your personal health record, accessible anywhere.</h2>", unsafe_allow_html=True)
+    st.markdown("<h2 style='text-align: center; color: grey;'>Your personal health record, accessible anywhere.</h2>", unsafe_allow_html=True)
     st.divider()
 
     login_token = st.query_params.get("token")
@@ -151,7 +151,7 @@ def draw_login_page():
             st.rerun()
 
 def draw_create_profile_page():
-    st.markdown("<h1 style='text-align: center; color: #2E8BC0; font-family:Segoe UI,Arial,sans-serif; font-weight:700;'>Create Your Health Profile</h1>", unsafe_allow_html=True)
+    st.title("Create Your Health Profile")
     st.info("Fill out your details below. The final 'Create Profile' button is at the bottom of the page.")
 
     with st.container(border=True):
@@ -283,7 +283,7 @@ def draw_create_profile_page():
 
 def draw_dashboard():
     patient = st.session_state['logged_in_patient']
-    st.markdown(f"<h1 style='text-align: center; color: #2E8BC0; font-family:Segoe UI,Arial,sans-serif; font-weight:700;'>MedVault Dashboard for {patient['name']}</h1>", unsafe_allow_html=True)
+    st.title(f"MedVault Dashboard for {patient['name']}")
     col1, col2 = st.columns([1, 3])
     with col1:
         profile_pic_path = None
@@ -292,7 +292,8 @@ def draw_dashboard():
             if os.path.exists(path):
                 profile_pic_path = path
                 break
-        st.image(profile_pic_path if profile_pic_path else "https://static.streamlit.io/examples/cat.jpg", use_container_width=True)
+        # FIX: Changed default image to a generic icon
+        st.image(profile_pic_path if profile_pic_path else "https://www.iconpacks.net/icons/2/free-user-icon-3296-thumb.png", use_container_width=True)
     with col2:
         st.subheader("Your Details")
         m1, m2, m3 = st.columns(3)
@@ -351,7 +352,8 @@ def draw_dashboard():
             for file_name in patient_files:
                 file_path = os.path.join(UPLOADS_DIR, patient['patient_id'], file_name)
                 with open(file_path, "rb") as f:
-                    st.download_button(f"📄 Download {file_name}", f.read(), file_name)
+                    # FIX: Added a unique key to the download button
+                    st.download_button(f"📄 Download {file_name}", f.read(), file_name, key=f"download_dash_{file_name}")
         else:
             st.info("No reports uploaded yet.")
             
@@ -397,7 +399,7 @@ def draw_dashboard():
 
 def draw_view_only_dashboard():
     patient = st.session_state['view_only_patient_data']
-    st.markdown(f"<h1 style='text-align: center; color: #2E8BC0; font-family:Segoe UI,Arial,sans-serif; font-weight:700;'>MedVault Dashboard for {patient['name']}</h1>", unsafe_allow_html=True)
+    st.title(f"MedVault Dashboard for {patient['name']}")
     col1, col2 = st.columns([1, 3])
     with col1:
         profile_pic_path = None
@@ -406,7 +408,8 @@ def draw_view_only_dashboard():
             if os.path.exists(path):
                 profile_pic_path = path
                 break
-        st.image(profile_pic_path if profile_pic_path else "https://static.streamlit.io/examples/cat.jpg", use_container_width=True)
+        # FIX: Changed default image to a generic icon
+        st.image(profile_pic_path if profile_pic_path else "https://www.iconpacks.net/icons/2/free-user-icon-3296-thumb.png", use_container_width=True)
     with col2:
         st.subheader("Patient Details")
         m1, m2, m3 = st.columns(3)
@@ -430,7 +433,8 @@ def draw_view_only_dashboard():
             for file_name in patient_files:
                 file_path = os.path.join(UPLOADS_DIR, patient['patient_id'], file_name)
                 with open(file_path, "rb") as f:
-                    st.download_button(f"📄 Download {file_name}", f.read(), file_name)
+                    # FIX: Added a unique key to the download button
+                    st.download_button(f"📄 Download {file_name}", f.read(), file_name, key=f"download_view_{file_name}")
         else:
             st.info("No reports available.")
     st.divider()
