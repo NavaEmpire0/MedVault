@@ -39,12 +39,32 @@ def load_patients_df():
 def save_patients_df(df):
     df.to_csv(PATIENTS_CSV_PATH, index=False)
 
+# --- FIX: Rewritten function for robust ID generation on cloud platforms ---
 def generate_patient_id(df):
-    if df.empty: return "PAT001"
-    existing_ids = df['patient_id'].str.replace("PAT", "").astype(int)
-    max_id = existing_ids.max()
-    new_id_num = max_id + 1
-    return f"PAT{new_id_num:03d}"
+    """
+    Generates a new patient ID by checking the max ID from both the 
+    patients.csv file and the existing folder names in the uploads directory.
+    This makes it resilient to ephemeral filesystem issues on cloud platforms.
+    """
+    max_csv_id = 0
+    if not df.empty:
+        csv_ids = df['patient_id'].str.replace("PAT", "").astype(int)
+        max_csv_id = csv_ids.max()
+
+    max_folder_id = 0
+    try:
+        folder_names = os.listdir(UPLOADS_DIR)
+        folder_ids = [int(name.replace("PAT", "")) for name in folder_names if name.startswith("PAT")]
+        if folder_ids:
+            max_folder_id = max(folder_ids)
+    except (ValueError, FileNotFoundError):
+        # This handles cases where the uploads directory is empty or contains non-conforming names
+        max_folder_id = 0
+        
+    # The new ID is one greater than the highest of the two sources
+    last_num = max(max_csv_id, max_folder_id)
+    new_num = last_num + 1
+    return f"PAT{new_num:03d}"
     
 def authenticate_patient(patient_id, pin):
     df = load_patients_df()
