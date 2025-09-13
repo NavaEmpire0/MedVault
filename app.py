@@ -105,24 +105,15 @@ def draw_login_page():
     st.session_state['current_med_list'] = []
     st.session_state['history_med_list'] = []
 
-    # New: Centralized logo at the top
-    # Place logo directly above tagline, centered
-    if os.path.exists(LOGO_PATH):
-        import base64
-        with open(LOGO_PATH, "rb") as image_file:
-            encoded_logo = base64.b64encode(image_file.read()).decode()
-        st.markdown(f"""
-            <div style='text-align: center;'>
-                <img src='data:image/png;base64,{encoded_logo}' width='170'/>
-            </div>
-        """, unsafe_allow_html=True)
-    else:
-        st.markdown("<div style='text-align: center;'>", unsafe_allow_html=True)
-        st.markdown("<h1 style='text-align: center; color: #2E8BC0; font-family:Segoe UI,Arial,sans-serif; font-weight:700;'>MedVault Dashboard</h1>", unsafe_allow_html=True)
-        st.markdown("</div>", unsafe_allow_html=True)
-    st.markdown("<h2 style='text-align: center; color: #F9A826; font-family:Segoe UI,Arial,sans-serif; font-weight:500;'>Your personal health record, accessible anywhere.</h2>", unsafe_allow_html=True)
-    st.divider()
+    logo_col1, logo_col2, logo_col3 = st.columns([1, 2, 1])
+    with logo_col2:
+        if os.path.exists(LOGO_PATH):
+            st.image(LOGO_PATH, use_container_width=True)
+        else:
+            st.title("MedVault Dashboard")
 
+    st.markdown("<h2 style='text-align: center; color: grey;'>Your personal health record, accessible anywhere.</h2>", unsafe_allow_html=True)
+    st.divider()
 
     login_token = st.query_params.get("token")
     if login_token and not st.session_state.get('logged_in_patient'):
@@ -160,7 +151,7 @@ def draw_login_page():
             st.rerun()
 
 def draw_create_profile_page():
-    st.markdown("<h1 style='text-align: center; color: #2E8BC0; font-family:Segoe UI,Arial,sans-serif; font-weight:700;'>Create Your Health Profile</h1>", unsafe_allow_html=True)
+    st.title("Create Your Health Profile")
     st.info("Fill out your details below. The final 'Create Profile' button is at the bottom of the page.")
 
     with st.container(border=True):
@@ -223,6 +214,21 @@ def draw_create_profile_page():
                         if st.button("Remove", key=f"remove_history_{i}"):
                             st.session_state.history_med_list.pop(i)
                             st.rerun()
+    
+    # NEW: Drug lookup feature added to this page
+    with st.expander("🔍 Unsure about a medication? Look it up here."):
+        drug_to_lookup = st.selectbox("Select a medication to look up", options=known_drugs, key="create_lookup")
+        if st.button("Look up Info", key="create_lookup_btn"):
+            if drug_to_lookup != "--- Select a Drug ---" and drug_to_lookup != "Other...":
+                with st.spinner(f"Searching for {drug_to_lookup}..."):
+                    drug_details = fetch_drug_info(drug_to_lookup)
+                    if "Error" in drug_details:
+                        st.error(drug_details["Error"])
+                    else:
+                        st.success(f"Information for {drug_to_lookup}:")
+                        st.json(drug_details)
+            else:
+                st.warning("Please select a specific medication from the list to look up.")
 
     st.divider()
 
@@ -278,7 +284,7 @@ def draw_create_profile_page():
 
 def draw_dashboard():
     patient = st.session_state['logged_in_patient']
-    st.markdown(f"<h1 style='text-align: center; color: #2E8BC0; font-family:Segoe UI,Arial,sans-serif; font-weight:700;'>MedVault Dashboard for {patient['name']}</h1>", unsafe_allow_html=True)
+    st.title(f"MedVault Dashboard for {patient['name']}")
     col1, col2 = st.columns([1, 3])
     with col1:
         profile_pic_path = None
@@ -392,7 +398,7 @@ def draw_dashboard():
 
 def draw_view_only_dashboard():
     patient = st.session_state['view_only_patient_data']
-    st.markdown(f"<h1 style='text-align: center; color: #2E8BC0; font-family:Segoe UI,Arial,sans-serif; font-weight:700;'>MedVault Dashboard for {patient['name']}</h1>", unsafe_allow_html=True)
+    st.title(f"MedVault Dashboard for {patient['name']}")
     col1, col2 = st.columns([1, 3])
     with col1:
         profile_pic_path = None
