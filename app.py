@@ -39,12 +39,20 @@ def load_patients_df():
 def save_patients_df(df):
     df.to_csv(PATIENTS_CSV_PATH, index=False)
 
+# --- FIX: Rewritten function for robust ID generation ---
 def generate_patient_id(df):
-    if df.empty: return "PAT001"
-    last_id = df['patient_id'].iloc[-1]
-    last_num = int(last_id.replace("PAT", ""))
-    new_num = last_num + 1
-    return f"PAT{new_num:03d}"
+    """Generates a new patient ID by finding the maximum existing ID and incrementing it."""
+    if df.empty:
+        return "PAT001"
+    
+    # Extract numbers from all existing patient IDs
+    existing_ids = df['patient_id'].str.replace("PAT", "").astype(int)
+    # Find the highest number
+    max_id = existing_ids.max()
+    # Increment to get the new ID number
+    new_id_num = max_id + 1
+    # Format back into PATXXX format
+    return f"PAT{new_id_num:03d}"
     
 def authenticate_patient(patient_id, pin):
     df = load_patients_df()
@@ -292,7 +300,6 @@ def draw_dashboard():
             if os.path.exists(path):
                 profile_pic_path = path
                 break
-        # FIX: Changed default image to a generic icon
         st.image(profile_pic_path if profile_pic_path else "https://www.iconpacks.net/icons/2/free-user-icon-3296-thumb.png", use_container_width=True)
     with col2:
         st.subheader("Your Details")
@@ -352,7 +359,6 @@ def draw_dashboard():
             for file_name in patient_files:
                 file_path = os.path.join(UPLOADS_DIR, patient['patient_id'], file_name)
                 with open(file_path, "rb") as f:
-                    # FIX: Added a unique key to the download button
                     st.download_button(f"📄 Download {file_name}", f.read(), file_name, key=f"download_dash_{file_name}")
         else:
             st.info("No reports uploaded yet.")
@@ -408,7 +414,6 @@ def draw_view_only_dashboard():
             if os.path.exists(path):
                 profile_pic_path = path
                 break
-        # FIX: Changed default image to a generic icon
         st.image(profile_pic_path if profile_pic_path else "https://www.iconpacks.net/icons/2/free-user-icon-3296-thumb.png", use_container_width=True)
     with col2:
         st.subheader("Patient Details")
@@ -433,7 +438,6 @@ def draw_view_only_dashboard():
             for file_name in patient_files:
                 file_path = os.path.join(UPLOADS_DIR, patient['patient_id'], file_name)
                 with open(file_path, "rb") as f:
-                    # FIX: Added a unique key to the download button
                     st.download_button(f"📄 Download {file_name}", f.read(), file_name, key=f"download_view_{file_name}")
         else:
             st.info("No reports available.")
