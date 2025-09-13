@@ -34,7 +34,6 @@ if not os.path.exists(DRUG_MAP_CSV_PATH):
 
 # --- HELPER FUNCTIONS ---
 def load_patients_df():
-    # FIX: Ensure medication columns are read as strings, filling empty values with ''
     return pd.read_csv(PATIENTS_CSV_PATH, dtype={'pin': str}).fillna('')
 
 def save_patients_df(df):
@@ -332,12 +331,10 @@ def draw_dashboard():
     med_col, report_col = st.columns(2)
     with med_col:
         st.subheader("💊 Current Medicines")
-        # FIX: Wrap the .get() result in str() to prevent AttributeError
         current_meds_list = [med for med in str(patient.get('current_medications', '')).splitlines() if med.strip()]
         st.info(", ".join(current_meds_list) if current_meds_list else "No current medications listed.")
         
         st.subheader("📜 Medication History")
-        # FIX: Wrap the .get() result in str() to prevent AttributeError
         history_meds_list = [med for med in str(patient.get('medication_history', '')).splitlines() if med.strip()]
         st.info(", ".join(history_meds_list) if history_meds_list else "No medication history listed.")
     with report_col:
@@ -420,12 +417,10 @@ def draw_view_only_dashboard():
     med_col, report_col = st.columns(2)
     with med_col:
         st.subheader("💊 Current Medicines")
-        # FIX: Wrap the .get() result in str() to prevent AttributeError
         current_meds_list = [med for med in str(patient.get('current_medications', '')).splitlines() if med.strip()]
         st.info(", ".join(current_meds_list) if current_meds_list else "No current medications listed.")
 
         st.subheader("📜 Medication History")
-        # FIX: Wrap the .get() result in str() to prevent AttributeError
         history_meds_list = [med for med in str(patient.get('medication_history', '')).splitlines() if med.strip()]
         st.info(", ".join(history_meds_list) if history_meds_list else "No medication history listed.")
     with report_col:
