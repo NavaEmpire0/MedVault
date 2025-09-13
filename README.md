@@ -45,19 +45,14 @@ pip package manager
 Installation
 Clone the repository (or download the files):
 
-Bash
-
 git clone https://github.com/NavaEmpire0/MedVault.git
 cd MedVault
 Create the required folder structure:
 The application needs a data folder with an uploads subfolder to store patient files.
 
-Bash
-
 mkdir -p data/uploads
 Install the required packages:
 
-Bash
 
 pip install -r requirements.txt
 Running the App
@@ -65,7 +60,7 @@ Navigate to the project directory in your terminal.
 
 Run the following command:
 
-Bash
+
 
 streamlit run app.py
 Your web browser should automatically open to the application's login page.
