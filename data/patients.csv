@@ -1,0 +1,20 @@
+patient_id,name,dob,blood_group,current_medications,medication_history,pin
+PAT001,rocks,2015-09-17,A+,3702,,
+PAT002,lad,2001-09-11,A+,8637,,
+PAT003,teach,2025-09-05,A+,2453,,
+PAT004,roger,2025-09-06,B+,1031,,
+PAT005,bb,2025-09-04,AB+,5044,,
+PAT006,aa,2025-09-10,A-,8592,,
+PAT007,shiki,2025-09-30,AB-,9257,jelly,
+PAT008,shanks,2025-09-04,B+,4856,jelly,
+PAT009,luffy,2025-09-06,AB-,6432,p,
+PAT010,bob,2025-09-19,AB+,3453,b,
+PAT011,shyam,2025-09-12,AB+,5302,bbb,
+PAT012,rob,2025-09-24,AB-,m,o,6471
+PAT013,pro bro,2024-09-06,AB+,good,bad,2831
+PAT014,vv,2025-09-24,O+,"Aspirin
+Calpol","Aspirin
+Crocin",1560
+PAT015,cc,2025-09-24,AB-,"nice
+Benadryl","Benadryl
+Calpol",9977
