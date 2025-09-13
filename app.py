@@ -215,7 +215,6 @@ def draw_create_profile_page():
                             st.session_state.history_med_list.pop(i)
                             st.rerun()
     
-    # NEW: Drug lookup feature added to this page
     with st.expander("🔍 Unsure about a medication? Look it up here."):
         drug_to_lookup = st.selectbox("Select a medication to look up", options=known_drugs, key="create_lookup")
         if st.button("Look up Info", key="create_lookup_btn"):
@@ -379,7 +378,8 @@ def draw_dashboard():
         st.subheader("📲 Share Your Dashboard")
         st.info("Scan this QR code to get instant, password-less access to a view-only version of this dashboard.")
     with qr_col2:
-        BASE_URL = "http://localhost:8501" 
+        # UPDATED: Use your public Streamlit Cloud URL
+        BASE_URL = "https://medvault.streamlit.app" 
         login_token = f"{patient['patient_id']}_{patient['pin']}"
         qr_data = f"{BASE_URL}/?token={login_token}"
         qr = qrcode.QRCode(version=1, box_size=10, border=5)
