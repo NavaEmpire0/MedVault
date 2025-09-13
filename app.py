@@ -34,7 +34,8 @@ if not os.path.exists(DRUG_MAP_CSV_PATH):
 
 # --- HELPER FUNCTIONS ---
 def load_patients_df():
-    return pd.read_csv(PATIENTS_CSV_PATH, dtype={'pin': str})
+    # FIX: Ensure medication columns are read as strings, filling empty values with ''
+    return pd.read_csv(PATIENTS_CSV_PATH, dtype={'pin': str}).fillna('')
 
 def save_patients_df(df):
     df.to_csv(PATIENTS_CSV_PATH, index=False)
@@ -331,11 +332,13 @@ def draw_dashboard():
     med_col, report_col = st.columns(2)
     with med_col:
         st.subheader("💊 Current Medicines")
-        current_meds_list = [med for med in patient.get('current_medications', '').splitlines() if med.strip()]
+        # FIX: Wrap the .get() result in str() to prevent AttributeError
+        current_meds_list = [med for med in str(patient.get('current_medications', '')).splitlines() if med.strip()]
         st.info(", ".join(current_meds_list) if current_meds_list else "No current medications listed.")
         
         st.subheader("📜 Medication History")
-        history_meds_list = [med for med in patient.get('medication_history', '').splitlines() if med.strip()]
+        # FIX: Wrap the .get() result in str() to prevent AttributeError
+        history_meds_list = [med for med in str(patient.get('medication_history', '')).splitlines() if med.strip()]
         st.info(", ".join(history_meds_list) if history_meds_list else "No medication history listed.")
     with report_col:
         st.subheader("📁 Your Health Reports")
@@ -378,7 +381,6 @@ def draw_dashboard():
         st.subheader("📲 Share Your Dashboard")
         st.info("Scan this QR code to get instant, password-less access to a view-only version of this dashboard.")
     with qr_col2:
-        # UPDATED: Use your public Streamlit Cloud URL
         BASE_URL = "https://medvault.streamlit.app" 
         login_token = f"{patient['patient_id']}_{patient['pin']}"
         qr_data = f"{BASE_URL}/?token={login_token}"
@@ -418,11 +420,13 @@ def draw_view_only_dashboard():
     med_col, report_col = st.columns(2)
     with med_col:
         st.subheader("💊 Current Medicines")
-        current_meds_list = [med for med in patient.get('current_medications', '').splitlines() if med.strip()]
+        # FIX: Wrap the .get() result in str() to prevent AttributeError
+        current_meds_list = [med for med in str(patient.get('current_medications', '')).splitlines() if med.strip()]
         st.info(", ".join(current_meds_list) if current_meds_list else "No current medications listed.")
 
         st.subheader("📜 Medication History")
-        history_meds_list = [med for med in patient.get('medication_history', '').splitlines() if med.strip()]
+        # FIX: Wrap the .get() result in str() to prevent AttributeError
+        history_meds_list = [med for med in str(patient.get('medication_history', '')).splitlines() if med.strip()]
         st.info(", ".join(history_meds_list) if history_meds_list else "No medication history listed.")
     with report_col:
         st.subheader("📁 Health Reports")
